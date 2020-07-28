@@ -68,8 +68,8 @@ def train_model(train_data):
   fer2013 = input_data(train_data)
   max_train_steps = 30001
 
-  x = tf.placeholder(tf.float32, [None, 2304])
-  y_ = tf.placeholder(tf.float32, [None, 7])
+  x = tf.compat.v1.placeholder(tf.float32, [None, 2304])
+  y_ = tf.compat.v1.placeholder(tf.float32, [None, 7])
 
   y_conv = deepnn(x)
 

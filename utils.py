@@ -24,7 +24,8 @@ def load_data(data_file):
     #   return
   faces = np.asarray(faces)
   faces = np.expand_dims(faces, -1)
-  emotions = pd.get_dummies(data['emotion']).as_matrix()
+  emotions = pd.get_dummies(data['emotion'])
+  emotions=emotions.iloc[:,:].values
   return faces, emotions
 
 

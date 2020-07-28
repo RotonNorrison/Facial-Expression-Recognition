@@ -10,6 +10,30 @@ CASC_PATH = './data/haarcascade_files/haarcascade_frontalface_default.xml'
 cascade_classifier = cv2.CascadeClassifier(CASC_PATH)
 EMOTIONS = ['angry', 'disgusted', 'fearful', 'happy', 'sad', 'surprised', 'neutral']
 
+
+def specify(parameter, img):
+  img_width = len(img[0])
+  img_height = len(img)
+  for i in range(img_height):
+    for j in range(parameter[0]):
+      img[i][j][0] = 0
+      img[i][j][1] = 0
+      img[i][j][2] = 0
+  for i in range(img_height):
+    for j in range(parameter[0] + parameter[2], img_width):
+      img[i][j][0] = 0
+      img[i][j][1] = 0
+      img[i][j][2] = 0
+  for i in range(parameter[1]):
+    for j in range(img_width):
+      img[i][j][0] = 0
+      img[i][j][1] = 0
+      img[i][j][2] = 0
+  for i in range(parameter[1] + parameter[3], img_height):
+    for j in range(img_width):
+      img[i][j][0] = 0
+      img[i][j][1] = 0
+      img[i][j][2] = 0
 def format_image(image):
   if len(image.shape) > 2 and image.shape[2] == 3:
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -75,7 +99,7 @@ def draw_emotion():
   pass
 
 def demo(modelPath, showBox=False):
-  face_x = tf.placeholder(tf.float32, [None, 2304])
+  face_x = tf.compat.v1.placeholder(tf.float32, [None, 2304])
   y_conv = deepnn(face_x)
   probs = tf.nn.softmax(y_conv)
 
@@ -86,39 +110,39 @@ def demo(modelPath, showBox=False):
     saver.restore(sess, ckpt.model_checkpoint_path)
     print('Restore model sucsses!!\nNOTE: Press SPACE on keyboard to capture face.')
 
-  feelings_faces = []
-  for index, emotion in enumerate(EMOTIONS):
-    feelings_faces.append(cv2.imread('./data/emojis/' + emotion + '.png', -1))
-  video_captor = cv2.VideoCapture(0)
+  video_path = "test.mp4"
+  cap = cv2.VideoCapture(video_path)
+  fps = cap.get(cv2.CAP_PROP_FPS)  # 获取视频的帧率
+  size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
+          int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))  # 获取视频的大小
 
-  emoji_face = []
+  fourcc = cv2.VideoWriter_fourcc(*'mpeg')  # 要保存的视频格式
+  # 把处理过的视频保存下来
+  output_viedo = cv2.VideoWriter()
+  # 保存的视频地址
+  video_save_path = 'trans.mp4'
+  output_viedo.open(video_save_path, fourcc, fps, size, True)
   result = None
 
   while True:
-    ret, frame = video_captor.read()
+    ret, frame = cap.read()
     detected_face, face_coor = format_image(frame)
     if showBox:
       if face_coor is not None:
-        [x,y,w,h] = face_coor
-        cv2.rectangle(frame, (x,y), (x+w,y+h), (255,0,0), 2)
-
-    if cv2.waitKey(1) & 0xFF == ord(' '):
-
-      if detected_face is not None:
-        cv2.imwrite('a.jpg', detected_face)
-        tensor = image_to_tensor(detected_face)
-        result = sess.run(probs, feed_dict={face_x: tensor})
-        # print(result)
+        specify(face_coor,frame)
+    if detected_face is not None:
+      tensor = image_to_tensor(detected_face)
+      result = sess.run(probs, feed_dict={face_x: tensor})
+      print(result)
+    output_viedo.write(frame)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+      break
+'''
     if result is not None:
       for index, emotion in enumerate(EMOTIONS):
         cv2.putText(frame, emotion, (10, index * 20 + 20), cv2.FONT_HERSHEY_PLAIN, 0.5, (0, 255, 0), 1)
         cv2.rectangle(frame, (130, index * 20 + 10), (130 + int(result[0][index] * 100), (index + 1) * 20 + 4),
                       (255, 0, 0), -1)
-        emoji_face = feelings_faces[np.argmax(result[0])]
+'''
 
-      for c in range(0, 3):
-        frame[200:320, 10:130, c] = emoji_face[:, :, c] * (emoji_face[:, :, 3] / 255.0) + frame[200:320, 10:130, c] * (1.0 - emoji_face[:, :, 3] / 255.0)
-    cv2.imshow('face', frame)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-      break
 
